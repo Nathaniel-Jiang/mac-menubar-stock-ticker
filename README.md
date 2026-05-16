@@ -67,9 +67,10 @@ You don't need to touch any Python code! Upon the first run, the script auto-gen
 }
 
 ```
-
-
 *(Once configured, your dropdown will dynamically render live performance stats like `💰 P&L: +$1,250.00`.)*
+
+
+
 
 ### 4. Breakout Alerts (`THRESHOLDS` & `ENABLE_SOUND_ALERT`)
 
@@ -86,6 +87,28 @@ You don't need to touch any Python code! Upon the first run, the script auto-gen
 * **How to change:** Swap the hexadecimal values if your region uses alternative directional market colors (e.g., switching red and green).
 
 
+
+### 6. Data Fetch & Rotation Speed (xbar mechanism)
+* **What it is: The frequency at which the terminal fetches new data and rotates to the next group of tickers.
+
+* **How to change: This is NOT in the JSON file! xbar controls the refresh rate via the plugin's filename. Currently, your file is named 001-yahoo_stock_ticker.4s.py, which means it refreshes every 4 seconds.
+
+* **To modify: Open your xbar plugins folder (~/Library/Application Support/xbar/plugins/). Rename the file extension. For example:
+
+* **Rename to ...10s.py to refresh/rotate every 10 seconds.
+
+* **Rename to ...1m.py to refresh/rotate every 1 minute.
+
+* **Note: Click Refresh all in xbar after renaming.
+
+
+
+### 7. Alert Freeze Duration (`FREEZE_DURATION`)
+* **What it is:** When an alert triggers, the UI freezes on the highlighted stock so you don't miss it. By default, this lasts for 30 seconds.
+* **How to change:** Add or modify the `"FREEZE_DURATION": 30` key in your JSON file to set your preferred freeze time in seconds.
+
+
+
 ## ⚠️ Troubleshooting & Common Pitfalls
 
 To keep the underlying engine running smoothly, avoid these frequent formatting mistakes in your JSON file:
@@ -96,3 +119,22 @@ To keep the underlying engine running smoothly, avoid these frequent formatting 
 
 *If your configuration file becomes corrupted and causes an interface crash, simply delete `~/.xbar_stock_config.json`. The plugin will automatically regenerate a pristine default copy on its next refresh cycle.*
 
+
+
+🔄 How to Reset / Delete a Corrupted Config File
+Since the configuration file is a hidden file starting with a dot (.), it is invisible in Finder by default. If your file becomes corrupted and causes an interface crash, use one of the following methods to safely delete and reset it:
+
+Option A (Fastest via Terminal): Open your Terminal app, paste the following command, and press Enter to instantly delete it:
+
+rm ~/.xbar_stock_config.json
+
+
+
+Option B (Via Finder User Interface): 
+
+1. Open Finder and press Command + Shift + H to jump straight to your Home directory.
+2. Press Command + Shift + . (Period key) on your keyboard to instantly toggle hidden files visible.
+3. Find the faded file named .xbar_stock_config.json and drag it to the Trash.
+4. Press Command + Shift + . again to hide system files when done.
+
+Once deleted, the plugin will automatically generate a brand-new, pristine default configuration file on its very next refresh cycle.
