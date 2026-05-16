@@ -42,6 +42,7 @@ DEFAULT_CONFIG = {
     "COLOR_DOWN": "#FF3333",
     "COLOR_NORMAL": "#FFFFFF",
     "ENABLE_SOUND_ALERT": True,
+    "FREEZE_DURATION": 30,
     "SMART_SORT": False, # If true, ignores groups and displays top movers
     "UPDATE_URL": "https://raw.githubusercontent.com/Nathaniel-Jiang/mac-menubar-stock-ticker/main/version.txt",
     "TICKER_GROUPS": [
@@ -251,6 +252,7 @@ def main():
         ordered_results = [results_dict[sym] for sym in current_syms if sym in results_dict]
     
     state_changed = False
+    freeze_duration = CONFIG.get("FREEZE_DURATION", 30) # Get freeze duration from config
     
     for data in ordered_results:
         if data.get("error"): continue
@@ -262,7 +264,7 @@ def main():
                 alert_key = f"{sym}_UP_{threshold}"
                 if alert_key not in alert_state["triggered"]:
                     alert_state["triggered"][alert_key] = True
-                    alert_state["pause_until"] = now_ts + 30  
+                    alert_state["pause_until"] = now_ts + freeze_duration  
                     alert_state["pause_group_idx"] = group_idx
                     alert_state["pause_color"] = CONFIG['COLOR_UP']
                     current_color = CONFIG['COLOR_UP']
@@ -272,7 +274,7 @@ def main():
                 alert_key = f"{sym}_DOWN_{threshold}"
                 if alert_key not in alert_state["triggered"]:
                     alert_state["triggered"][alert_key] = True
-                    alert_state["pause_until"] = now_ts + 30  
+                    alert_state["pause_until"] = now_ts + freeze_duration  
                     alert_state["pause_group_idx"] = group_idx
                     alert_state["pause_color"] = CONFIG['COLOR_DOWN']
                     current_color = CONFIG['COLOR_DOWN']
@@ -331,7 +333,7 @@ def main():
         print('---')
 
     if is_paused or state_changed:
-        print(f"⚠️ ALERT ACTIVE (30s Freeze) - {now.strftime('%X')} EST | color=#FFDD00")
+        print(f"⚠️ ALERT ACTIVE ({freeze_duration}s Freeze) - {now.strftime('%X')} EST | color=#FFDD00")
     elif is_smart_sort:
         print(f"🔥 SMART SORT MODE ACTIVE - {now.strftime('%X')} EST | color=#FF8C00")
     else:
