@@ -27,9 +27,9 @@ A highly customizable, blazing-fast stock ticker for your macOS menu bar. Powere
 
 Open the **Terminal** app on your Mac, copy & paste this command, and press Enter:
 
-
+```bash
 mkdir -p ~/Library/Application\ Support/xbar/plugins && curl -L "https://raw.githubusercontent.com/Nathaniel-Jiang/mac-menubar-stock-ticker/main/001-yahoo_stock_ticker.5s.py" -o ~/Library/Application\ Support/xbar/plugins/001-yahoo_stock_ticker.5s.py && chmod +x ~/Library/Application\ Support/xbar/plugins/001-yahoo_stock_ticker.5s.py && open -a xbar
-
+```
 
 
 *(This command automatically downloads the script from this repo to your xbar plugins folder, makes it executable, and wakes up xbar.)*
