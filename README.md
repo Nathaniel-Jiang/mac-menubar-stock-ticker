@@ -1,17 +1,24 @@
 # 📈 Mac Menu Bar Stock Terminal (PRO)
 
-A highly customizable, blazing-fast stock ticker for your macOS menu bar. Powered by xbar, featuring price breakout alerts, sparkline charts, portfolio tracking, and absolute zero dependencies.
+A highly customizable, blazing-fast stock ticker for your macOS menu bar. Powered by xbar, featuring price breakout alerts, sparkline charts, real-time margin/equity portfolio tracking, and absolute zero dependencies.
 
+---
 
 ## ✨ Features
-* **Zero Dependencies (Plug & Play):** Pure Python. No `pip install` or third-party libraries needed.
-* **Mini Sparklines:** See intraday trends directly in your menu bar (e.g., `▂▃▆█`).
-* **Smart Priority Sorting:** Automatically pins today's hottest movers to the front.
-* **Breakout Alerts & Freeze:** 30-second UI freeze, color shifts (Green/Red), and crisp sound alerts when a stock hits your predefined thresholds.
-* **Portfolio Tracking:** See your real-time unrealized floating profit/loss directly in the dropdown menu.
-* **Extended Hours:** Seamlessly switches between Pre-market (🌅) and Post-market (🌙) pricing.
-* **💤 Smart Sleep Mode (Eco-Friendly):** To save your Mac's battery and CPU, the terminal automatically enters a "Deep Sleep" mode and pauses background network requests during weekends and deep night hours when markets are closed.
-* **OTA Updates:** Silently checks for updates and alerts you in the menu dropdown.
+
+- **Zero Dependencies (Plug & Play):** Pure Python. No `pip install` or third-party libraries needed.
+- **Mini Sparklines:** See intraday trends directly in your menu bar (e.g., `▂▃▆█`).
+- **CNBC Breaking News [NEW in v1.1]:** Concurrently fetches CNBC Top News via RSS. Triggers a 30-second yellow takeover banner in your menu bar when market-moving news drops.
+- **Global Equity & Margin Alerts [NEW in v1.1]:** Actively calculates your Net Equity (Market Value minus Margin). Emits distinct High/Low equity alerts so you know exactly when to take profits or cut losses.
+- **Custom Ticker Icons [NEW in v1.1]:** Hide raw ticker symbols by mapping them to visually intuitive emojis (e.g., replace `"AAPL"` with 🍎).
+- **Smart Priority Sorting:** Automatically pins today's hottest movers to the front.
+- **Breakout Alerts & Freeze:** 15–30 second UI freeze, color shifts (Green/Red), and crisp sound alerts when a stock hits your predefined thresholds.
+- **Portfolio Tracking:** See your real-time unrealized floating profit/loss directly in the dropdown menu.
+- **Extended Hours:** Seamlessly switches between Pre-market (🌅) and Post-market (🌙) pricing.
+- **💤 Smart Sleep Mode (Eco-Friendly):** Automatically enters “Deep Sleep” mode during weekends and deep night hours to reduce battery and CPU usage.
+- **OTA Updates:** Silently checks for updates and alerts you in the menu dropdown.
+
+---
 
 
 ## 🚀 Quick Install (1-Click)
@@ -21,36 +28,60 @@ A highly customizable, blazing-fast stock ticker for your macOS menu bar. Powere
 Open the **Terminal** app on your Mac, copy & paste this command, and press Enter:
 
 
-mkdir -p ~/Library/Application\ Support/xbar/plugins && curl -L "https://raw.githubusercontent.com/Nathaniel-Jiang/mac-menubar-stock-ticker/main/001-yahoo_stock_ticker.4s.py" -o ~/Library/Application\ Support/xbar/plugins/001-yahoo_stock_ticker.4s.py && chmod +x ~/Library/Application\ Support/xbar/plugins/001-yahoo_stock_ticker.4s.py && open -a xbar
+mkdir -p ~/Library/Application\ Support/xbar/plugins && curl -L "https://raw.githubusercontent.com/Nathaniel-Jiang/mac-menubar-stock-ticker/main/001-yahoo_stock_ticker.5s.py" -o ~/Library/Application\ Support/xbar/plugins/001-yahoo_stock_ticker.5s.py && chmod +x ~/Library/Application\ Support/xbar/plugins/001-yahoo_stock_ticker.5s.py && open -a xbar
 
 
 
 *(This command automatically downloads the script from this repo to your xbar plugins folder, makes it executable, and wakes up xbar.)*
 
 
-## 🛠️ Complete Configuration Guide (How to Customize)
 
-You don't need to touch any Python code! Upon the first run, the script auto-generates a config file. 
 
-**📂 How to find the config file:**
-* **Method 1 (Easy):** Click **`⚙️ Edit Watchlist & Config`** in the xbar dropdown menu.
-* **Method 2 (Manual):** Navigate to your Mac's home directory and open the hidden file: `~/.xbar_stock_config.json`.
+# 🛠️ Complete Configuration Guide (How to Customize)
 
-### 1. Watchlist (`TICKER_GROUPS`) - Absolute Beginner's Guide
-Due to limited menu bar space, symbols are rotated in groups. Each bracket `[...]` is one group. The menu bar will show Group 1, then Group 2, etc., on each refresh.
+You don't need to touch any Python code. Upon the first run, the script auto-generates a config file.
 
-**Scenario A: How to add a new ticker to an existing group**
-*Rule: Always wrap the ticker in `" "` and separate them with a comma `,`.*
+## 📂 How to Find the Config File
+
+### Method 1 (Easy)
+Click:
+
+```text
+⚙️ Edit Watchlist & Config
+```
+
+inside the xbar dropdown menu.
+
+### Method 2 (Manual)
+
+Navigate to:
+
+```bash
+~/.xbar_stock_config.json
+```
+
+---
+
+## 1. Watchlist (`TICKER_GROUPS`) & Custom Icons (`TICKER_ICONS`)
+
+Due to limited menu bar space, symbols are rotated in groups. Each bracket `[...]` represents one group.
+
+### Scenario A: Add a New Ticker to an Existing Group
+
+**Rule:** Always wrap tickers in quotes and separate them with commas.
+
 ```json
 // BEFORE:
 ["AAPL", "MSFT"]
 
-// AFTER (adding TSLA):
-["AAPL", "MSFT", "TSLA"] 
+// AFTER:
+["AAPL", "MSFT", "TSLA"]
 ```
 
-**Scenario B: How to add a completely new rotation group**
-*Rule: Make sure to add a comma `,` after the previous group's closing bracket `]`!*
+### Scenario B: Add a Completely New Rotation Group
+
+**Rule:** Add a comma after the previous closing bracket.
+
 ```json
 // BEFORE:
 "TICKER_GROUPS": [
@@ -58,7 +89,7 @@ Due to limited menu bar space, symbols are rotated in groups. Each bracket `[...
     ["NVDA", "GOOGL"]
 ]
 
-// AFTER (Adding a 3rd group for Crypto):
+// AFTER:
 "TICKER_GROUPS": [
     ["AAPL", "MSFT"],
     ["NVDA", "GOOGL"],
@@ -66,118 +97,279 @@ Due to limited menu bar space, symbols are rotated in groups. Each bracket `[...
 ]
 ```
 
-### 2. Smart Priority Sorting (`SMART_SORT`)
-* **What it is:** When enabled, the script bypasses fixed group rotations and scans all your tickers simultaneously, instantly pinning the top movers with the highest absolute percentage change to your menu bar.
-* **How to change:** Toggle from `false` to `true`.
-
-
-
-### 3. Portfolio Tracking (`PORTFOLIO`) - Absolute Beginner's Guide
-* **What it is:** Moves beyond raw percentages to show exactly how much your positions are gaining or losing in real-time.
-* **How to add a new stock to track:**
-  **Rule: Every stock entry requires its ticker in double quotes, followed by `shares` (amount of stock) and `cost_basis` (your average purchase price). Crucially, you MUST add a comma `,` to separate multiple stocks!*
+### Scenario C: Map a Custom Icon
 
 ```json
-// BEFORE (Default with only one stock):
-"PORTFOLIO": {
-    "NVDA": {"shares": 50, "cost_basis": 120.00}
-}
-
-// AFTER (Adding a new stock, e.g., LUNR - Notice the comma after NVDA's block!):
-"PORTFOLIO": {
-    "NVDA": {"shares": 50, "cost_basis": 120.00},
-    "LUNR": {"shares": 200, "cost_basis": 4.50}
+"TICKER_ICONS": {
+    "AAPL": "🍎",
+    "TSLA": "⚡",
+    "NVDA": "🧠"
 }
 ```
-*(Once saved, your dropdown will dynamically display live metrics like `💰 P&L: +$1,250.00` for each held position.)*
 
+Any ticker assigned an emoji in `TICKER_ICONS` will display that emoji instead of the raw ticker symbol.
 
-### 4. Breakout Alerts (`THRESHOLDS` & `ENABLE_SOUND_ALERT`)
-* **What it is:** Triggers an instant UI freeze and structural color shifts if a stock crosses these daily percentage markers.
-* **How to change:** Adjust the array values (e.g., `[2, 5, 10]`). Turn off audio by switching `"ENABLE_SOUND_ALERT": true` to `false`.
+---
 
+## 2. Smart Priority Sorting (`SMART_SORT`)
 
-### 5. Color Palette (`COLOR_UP` & `COLOR_DOWN`)
-* **What it is:** The hex code color overlay applied during alert triggers. Swap the hexadecimal values if you prefer Red for up and Green for down.
+### What It Does
+When enabled, the script bypasses fixed group rotations and scans all tickers simultaneously, pinning the strongest movers with the highest percentage changes.
 
+### How to Enable
 
-### 6. Alert Freeze Duration (`FREEZE_DURATION`)
-* **What it is:** When an alert triggers, the UI freezes on the highlighted stock so you don't miss it. By default, this lasts for 30 seconds.
-* **How to change:** Add or modify the `"FREEZE_DURATION": 30` key in your JSON file to set your preferred freeze time in seconds.
+```json
+"SMART_SORT": true
+```
 
+---
 
-### 7. ⏱️ Data Fetch & Rotation Speed (xbar mechanism)
-* **What it is:** The frequency at which the terminal fetches new market data and rotates to the next group of tickers.
-* **How to change:** **This is NOT in the JSON file!** xbar controls the refresh rate entirely via the plugin's **filename** (e.g., `.4s.py` means a 4-second refresh).
-* **The Easiest Way to Change It (No typing required):**
-  1. Click your stock ticker in the Mac menu bar to open the dropdown menu.
-  2. Navigate to **`xbar`** -> click **`Open Plugins Folder`**. This will instantly open the exact Finder window where your file lives.
-  3. Right-click the file `001-yahoo_stock_ticker.4s.py` and select **Rename**.
-  4. Change the `.4s` part to your desired interval. For example:
-     * Rename to `...10s.py` to refresh/rotate every 10 seconds.
-     * Rename to `...1m.py` to refresh/rotate every 1 minute.
-  5. Go back to the menu bar, click **`xbar`** -> **`Refresh all`** to apply!
+## 3. Portfolio, Margin & Equity Tracking (`PORTFOLIO` & `ACCOUNT`)
 
+```json
+"ACCOUNT": {
+    "margin_used": 5000.00,
+    "EQUITY_ALERT_HIGH": 50000.00,
+    "EQUITY_ALERT_LOW": 10000.00
+},
+"PORTFOLIO": {
+    "AAPL": {"shares": 100, "cost_basis": 150.00},
+    "MSFT": {"shares": 50, "cost_basis": 350.00}
+}
+```
 
-## ⚠️ Troubleshooting & Common Pitfalls
-To keep the underlying engine running smoothly, avoid these frequent formatting mistakes in your JSON file:
-1. **Missing Quotation Marks:** Every ticker symbol and configuration key must remain enclosed in **double quotes** (`"AAPL"`).
-2. **Trailing/Missing Commas:** Ensure every item or block within a list is separated by a single comma `,`, except for the very last element in that section.
-3. **Structural Preservation:** Never delete the closing structural brackets (`}` or `]`).
+### Explanation
 
+- **`PORTFOLIO`**
+  - `shares` = number of shares owned
+  - `cost_basis` = average purchase price
+  - Separate multiple stocks using commas
 
-### 🔄 How to Reset / Delete a Corrupted Config File
-Since the configuration file is a hidden file starting with a dot (`.`), it is invisible in Finder by default. If your file becomes corrupted and causes an interface crash, use one of the following methods to safely delete and reset it:
+- **`margin_used`**
+  - Subtracted from total market value to calculate real-time Net Equity
 
-* **Option A (Fastest via Terminal):** Open your **Terminal** app, paste the following command, and press Enter to instantly delete it:
+- **`EQUITY_ALERT_HIGH` / `LOW`**
+  - Triggers critical risk/take-profit alerts when equity thresholds are reached
 
+---
 
-  rm ~/.xbar_stock_config.json
+## 4. Breakout & News Alerts
 
+### `THRESHOLDS`
 
-* **Option B (Via Finder User Interface):** 1. Open **Finder** and press `Command + Shift + H` to jump straight to your Home directory.
-  2. Press **`Command + Shift + .` (Period key)** on your keyboard to instantly toggle hidden files visible.
-  3. Find the faded file named **`.xbar_stock_config.json`** and drag it to the Trash.
-  4. Press `Command + Shift + .` again to hide system files when done.
+Triggers instant UI freeze and color alerts when daily percentage changes cross predefined levels.
 
-*Once deleted, the plugin will automatically generate a brand-new, pristine default configuration file on its very next refresh cycle.*
+Example:
 
+```json
+"THRESHOLDS": [2, 5, 10]
+```
 
-## 💬 Feedback & Support
+### `ENABLE_NEWS_ALERTS`
 
-Love this terminal? Have a brilliant idea? Or did something break? I'd love to hear from you!
+```json
+"ENABLE_NEWS_ALERTS": true
+```
 
-* **🐛 Found a Bug?**
-  Please open a ticket on the [GitHub Issues page](https://github.com/Nathaniel-Jiang/mac-menubar-stock-ticker/issues). To help me fix it blazing fast, please include:
-  1. Your macOS version.
-  2. A copy of your `~/.xbar_stock_config.json` *(Note: Please delete your actual portfolio numbers before sharing!)*.
-  3. A screenshot of the error, if applicable.
+When enabled, the script polls CNBC RSS headlines and triggers a temporary yellow takeover banner for breaking market news.
 
-* **💡 Have a Feature Request?**
-  I am continuously looking to improve this tool! Feel free to open an issue and share your ideas. Whether it's a new metric, a different chart style, or a new data source—let's discuss it!
+### `ENABLE_SOUND_ALERT`
 
-* **⭐️ Support the Project**
-  If this tool helped you catch a breakout, saved your battery, or just looks incredibly cool on your Mac menu bar, please consider giving it a **Star ⭐️** at the top right of this repository. It helps more traders find this tool!
+```json
+"ENABLE_SOUND_ALERT": false
+```
 
+Set to `false` to disable sounds.
 
-## 🤝 Contributing
+---
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+## 5. Color Palette (`COLOR_UP` & `COLOR_DOWN`)
 
-If you want to modify the code, add new features, or fix bugs to improve the project for everyone:
-1. **Fork** the Project.
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the Branch (`git push origin feature/AmazingFeature`).
-5. Open a **Pull Request** (PR) against our `main` branch.
+Customize alert overlay colors using hexadecimal color codes.
 
-I will personally review every single PR and merge the ones that bring incredible value to the community!
+Example:
 
+```json
+"COLOR_UP": "#00FF00",
+"COLOR_DOWN": "#FF0000"
+```
 
-## ☕ Support This Project (Buy Me a Coffee)
+---
 
-This project is completely open-source and free to use. I build and maintain it in my free time to help fellow traders and developers stay on top of the market. 
+## 6. Alert Freeze Duration (`FREEZE_DURATION`)
 
-If this tool has saved your battery, caught a major breakout, or just looks incredibly cool on your Mac menu bar, consider supporting my work! Your support keeps the updates coming and the features flowing.
+Controls how long the menu bar remains frozen on an alert.
+
+```json
+"FREEZE_DURATION": 30
+```
+
+Value is measured in seconds.
+
+---
+
+## 7. ⏱️ Data Fetch & Rotation Speed (xbar Mechanism)
+
+xbar controls refresh speed entirely through the filename.
+
+Example:
+
+```text
+001-yahoo_stock_ticker.5s.py
+```
+
+means the plugin refreshes every 5 seconds.
+
+## How to Change the Refresh Speed
+
+1. Click the stock ticker in the Mac menu bar
+2. Navigate to:
+
+```text
+xbar → Open Plugins Folder
+```
+
+3. Rename the plugin file
+
+Examples:
+
+```text
+...10s.py   → refresh every 10 seconds
+...1m.py    → refresh every 1 minute
+```
+
+4. Return to the menu bar and click:
+
+```text
+xbar → Refresh All
+```
+
+---
+
+# ⚠️ Troubleshooting & Common Pitfalls
+
+## Common JSON Formatting Mistakes
+
+1. **Missing Quotation Marks**
+   - Every ticker symbol and configuration key must use double quotes
+
+2. **Missing or Extra Commas**
+   - Separate list items with commas, except the final item
+
+3. **Broken Structure**
+   - Never delete closing brackets (`}` or `]`)
+
+---
+
+# 🔄 Reset / Delete a Corrupted Config File
+
+Since the config file begins with a dot (`.`), it is hidden in Finder by default.
+
+## Option A — Fastest (Terminal)
+
+```bash
+rm ~/.xbar_stock_config.json
+```
+
+## Option B — Finder UI
+
+1. Open Finder
+2. Press:
+
+```text
+Command + Shift + H
+```
+
+3. Press:
+
+```text
+Command + Shift + .
+```
+
+to show hidden files
+
+4. Delete:
+
+```text
+.xbar_stock_config.json
+```
+
+5. Press:
+
+```text
+Command + Shift + .
+```
+
+again to hide system files
+
+Once deleted, the plugin automatically generates a fresh default configuration file during the next refresh cycle.
+
+---
+
+# 💬 Feedback & Support
+
+Love this terminal? Have an idea? Found a bug?
+
+## 🐛 Found a Bug?
+
+Open an issue here:
+
+https://github.com/Nathaniel-Jiang/mac-menubar-stock-ticker/issues
+
+Please include:
+
+1. Your macOS version
+2. Your config file (remove personal portfolio numbers first)
+3. Screenshots of any errors
+
+---
+
+## 💡 Feature Requests
+
+Suggestions are always welcome — whether it's a new metric, chart style, or data source.
+
+---
+
+## ⭐️ Support the Project
+
+If this tool helped you catch a breakout, save battery life, or simply made your menu bar look cooler, consider giving the repository a Star ⭐️.
+
+---
+
+# 🤝 Contributing
+
+Contributions are greatly appreciated.
+
+## Workflow
+
+1. Fork the project
+2. Create a feature branch
+
+```bash
+git checkout -b feature/AmazingFeature
+```
+
+3. Commit changes
+
+```bash
+git commit -m "Add AmazingFeature"
+```
+
+4. Push the branch
+
+```bash
+git push origin feature/AmazingFeature
+```
+
+5. Open a Pull Request against the `main` branch
+
+---
+
+# ☕ Support This Project
+
+This project is completely open-source and free to use.
+
+If it helped you catch a breakout, save battery life, or improve your workflow, consider supporting the project. Every bit of support helps keep updates and new features coming.
+
 
 [!["Buy Me A Coffee"](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/nathanieljiang)
