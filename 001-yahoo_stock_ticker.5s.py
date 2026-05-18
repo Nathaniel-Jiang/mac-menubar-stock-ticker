@@ -2,7 +2,7 @@
 
 """
 macOS Menu Bar Stock Terminal (xbar plugin) V1.1
-Features: Sparklines, Priority Sorting, P&L, Margin & Equity Alerts, CNBC Breaking News, Custom Icons
+Features: Sparklines, Priority Sorting, P&L, Margin & Equity Alerts, Price Target Alerts, CNBC Breaking News, Custom Icons
 """
 
 import urllib.request
@@ -64,6 +64,10 @@ DEFAULT_CONFIG = {
     "PORTFOLIO": {
         "AAPL": {"shares": 100, "cost_basis": 150.00},
         "MSFT": {"shares": 50, "cost_basis": 350.00}
+    },
+    "PRICE_ALERTS": {
+        "AAPL": {"above": 250.0, "below": 100.0},
+        "TSLA": {"above": 300.0}
     }
 }
 # =========================================================================
@@ -79,6 +83,7 @@ def load_config():
     try:
         with open(CONFIG_FILE, 'r') as f:
             user_cfg = json.load(f)
+            # Auto-inject new config keys (like PRICE_ALERTS) if missing in user's file
             for key in DEFAULT_CONFIG:
                 if key not in user_cfg:
                     user_cfg[key] = DEFAULT_CONFIG[key]
@@ -113,9 +118,11 @@ def generate_sparkline(close_prices):
     min_val, max_val = min(sampled), max(sampled)
     if min_val == max_val: return "━━"
     
-    chars = [' ', '▂', '▃', '▄', '▅', '▆', '▇', '█']
+    # Dropped the lowest 1/8 block to prevent macOS Menlo font clipping.
+    # Now starting from the 1/4 block ('▂') as the absolute minimum.
+    chars = ['▂', '▃', '▄', '▅', '▆', '▇', '█']
     spread = max_val - min_val
-    return "".join(chars[int(((v - min_val) / spread) * 7)] for v in sampled)
+    return "".join(chars[int(((v - min_val) / spread) * 6)] for v in sampled)
 
 def get_currency_symbol(currency_code):
     return CURRENCY_SYMBOLS.get(currency_code, f"{currency_code} ")
@@ -354,7 +361,9 @@ def main():
         if data.get("error"): continue
         sym = data['symbol']
         c_pct_raw = data['c_pct_raw']
+        current_price = data['p_float']
         
+        # A. Percentage Threshold Alerts
         for threshold in CONFIG['THRESHOLDS']:
             if abs(c_pct_raw) >= threshold:
                 direction = "UP" if c_pct_raw > 0 else "DOWN"
@@ -373,6 +382,39 @@ def main():
                         alert_state["alert_type"] = "STOCK"
                         current_color = alert_state["pause_color"]
                     state_changed = True
+
+        # B. Custom Price Target Alerts
+        price_targets = CONFIG.get("PRICE_ALERTS", {}).get(sym, {})
+        
+        if "above" in price_targets and current_price >= price_targets["above"]:
+            alert_key = f"{sym}_PRICE_ABOVE_{price_targets['above']}"
+            if alert_key not in alert_state["triggered"]:
+                alert_state["triggered"][alert_key] = True
+                
+                current_alert_type = alert_state.get("alert_type", "")
+                if not current_alert_type.startswith("EQUITY") and current_alert_type != "NEWS":
+                    alert_state["pause_until"] = now_ts + freeze_duration
+                    alert_state["pause_group_idx"] = group_idx
+                    alert_state["pause_color"] = CONFIG['COLOR_UP']
+                    alert_state["alert_msg"] = f"🎯 TARGET REACHED: {sym} > ${price_targets['above']}"
+                    alert_state["alert_type"] = "PRICE"
+                    current_color = alert_state["pause_color"]
+                state_changed = True
+
+        if "below" in price_targets and current_price <= price_targets["below"]:
+            alert_key = f"{sym}_PRICE_BELOW_{price_targets['below']}"
+            if alert_key not in alert_state["triggered"]:
+                alert_state["triggered"][alert_key] = True
+                
+                current_alert_type = alert_state.get("alert_type", "")
+                if not current_alert_type.startswith("EQUITY") and current_alert_type != "NEWS":
+                    alert_state["pause_until"] = now_ts + freeze_duration
+                    alert_state["pause_group_idx"] = group_idx
+                    alert_state["pause_color"] = CONFIG['COLOR_DOWN']
+                    alert_state["alert_msg"] = f"🛑 PRICE DROP: {sym} < ${price_targets['below']}"
+                    alert_state["alert_type"] = "PRICE"
+                    current_color = alert_state["pause_color"]
+                state_changed = True
 
     # ====== CALCULATE GLOBAL PORTFOLIO INDEPENDENTLY ======
     total_market_value = 0.0
@@ -428,12 +470,12 @@ def main():
             unrealized = market_val - (cost * shares)
             today_pl = (data['p_float'] - data['prev_close']) * shares
             
-            sign = '+' if unrealized >= 0 else ''
-            t_sign = '+' if today_pl >= 0 else ''
+            sign = '+' if unrealized >= 0 else '-'
+            t_sign = '+' if today_pl >= 0 else '-'
             
-            # Dynamic single stock P&L coloring
-            single_pl_color = CONFIG['COLOR_UP'] if unrealized >= 0 else CONFIG['COLOR_DOWN']
-            dd_str += f" • 💰 P&L: {sign}{c_sym}{unrealized:,.2f} (Today: {t_sign}{c_sym}{today_pl:,.2f}) | color={single_pl_color}"
+            # Color is driven strictly by TODAY'S P&L
+            single_pl_color = CONFIG['COLOR_UP'] if today_pl >= 0 else CONFIG['COLOR_DOWN']
+            dd_str += f" • 💰 P&L: {sign}{c_sym}{abs(unrealized):,.2f} (Today: {t_sign}{c_sym}{abs(today_pl):,.2f}) | color={single_pl_color}"
         
         dd_str += f" | href=https://finance.yahoo.com/quote/{sym}"
         dropdown_info.append(dd_str)
@@ -488,9 +530,14 @@ def main():
         if is_stock_active:
             # Standard rendering for Stock/Equity alerts
             menu_bar_string = "   ".join(menu_bar_parts)
-            if is_paused and alert_state.get("alert_type", "").startswith("EQUITY"):
-                prefix = "🎯 [HIGH EQUITY] " if alert_state["alert_type"] == "EQUITY_HIGH" else "🛑 [LOW EQUITY] "
+            
+            # Prepend appropriate icon based on alert type
+            alert_type = alert_state.get("alert_type", "")
+            if is_paused and alert_type.startswith("EQUITY"):
+                prefix = "🎯 [HIGH EQUITY] " if alert_type == "EQUITY_HIGH" else "🛑 [LOW EQUITY] "
                 menu_bar_string = prefix + menu_bar_string
+            elif is_paused and alert_type == "PRICE":
+                menu_bar_string = "🔔 [PRICE ALERT] " + menu_bar_string
         else:
             # When stock engine is off but news is active
             menu_bar_string = "📡 News Radar ON [Market Closed]"
@@ -504,15 +551,15 @@ def main():
         margin_used = account_cfg.get("margin_used", 0.0)
         current_equity = total_market_value - margin_used
         
-        tot_sign = '+' if total_unrealized_pl >= 0 else ''
-        tot_t_sign = '+' if total_today_pl >= 0 else ''
+        tot_sign = '+' if total_unrealized_pl >= 0 else '-'
+        tot_t_sign = '+' if total_today_pl >= 0 else '-'
         
-        # Dynamic color for Total P&L
-        pl_color = '#228B22' if total_unrealized_pl >= 0 else '#DC143C'
+        # FIXED: Color is now driven strictly by TODAY'S P&L (total_today_pl)
+        pl_color = '#228B22' if total_today_pl >= 0 else '#DC143C'
         
         print(f"🏦 PORTFOLIO TOTAL | color=#191970 size=14 font='Menlo Bold'")
         print(f"💵 Equity: ${current_equity:,.2f} (Margin: ${margin_used:,.2f}) | color=#2F4F4F size=13 font='Menlo Bold'")
-        print(f"💰 Total P&L: {tot_sign}${total_unrealized_pl:,.2f} (Today: {tot_t_sign}${total_today_pl:,.2f}) | color={pl_color} size=13 font='Menlo Bold'")
+        print(f"💰 Total P&L: {tot_sign}${abs(total_unrealized_pl):,.2f} (Today: {tot_t_sign}${abs(total_today_pl):,.2f}) | color={pl_color} size=13 font='Menlo Bold'")
         print('---')
     elif not is_stock_active:
         print("Market Data and P&L Paused | color=#2F4F4F size=13")
