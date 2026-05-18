@@ -14,7 +14,6 @@ A highly customizable, blazing-fast stock ticker for your macOS menu bar. Powere
 - **Smart Priority Sorting:** Automatically pins today's hottest movers to the front.
 - **Breakout Alerts & Freeze:** 15–30 second UI freeze, color shifts (Green/Red), and crisp sound alerts when a stock hits your predefined thresholds.
 - **Portfolio Tracking:** See your real-time unrealized floating profit/loss directly in the dropdown menu.
-- **Extended Hours:** Seamlessly switches between Pre-market (🌅) and Post-market (🌙) pricing.
 - **💤 Smart Sleep Mode (Eco-Friendly):** Automatically enters “Deep Sleep” mode during weekends and deep night hours to reduce battery and CPU usage.
 - **OTA Updates:** Silently checks for updates and alerts you in the menu dropdown.
 
