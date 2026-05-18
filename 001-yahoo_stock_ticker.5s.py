@@ -36,11 +36,11 @@ CURRENCY_SYMBOLS = {
     'CNY': '¥', 'BTC': '₿', 'ETH': 'Ξ'
 }
 
-# The default configuration generated upon the first run (Anonymized)
+# The default configuration generated upon the first run
 DEFAULT_CONFIG = {
     "THRESHOLDS": [5, 10, 15, 20, 25],
-    "COLOR_UP": "#00FF00",
-    "COLOR_DOWN": "#FF3333",
+    "COLOR_UP": "#228B22",
+    "COLOR_DOWN": "#DC143C",
     "COLOR_NORMAL": "#FFFFFF",
     "ENABLE_SOUND_ALERT": True,
     "FREEZE_DURATION": 30,
@@ -87,6 +87,10 @@ def load_config():
         return DEFAULT_CONFIG
 
 CONFIG = load_config()
+
+# Force override old neon colors to readable colors without requiring the user to delete their JSON
+if CONFIG.get("COLOR_UP") == "#00FF00": CONFIG["COLOR_UP"] = "#228B22"
+if CONFIG.get("COLOR_DOWN") == "#FF3333": CONFIG["COLOR_DOWN"] = "#DC143C"
 
 def format_volume(v):
     """Formats large volume numbers into human-readable strings."""
@@ -147,9 +151,10 @@ def get_stock_data(symbol, market_phase):
     """Fetches real-time price, volume, and intraday chart data from Yahoo Finance."""
     user_agent = random.choice(USER_AGENTS)
     try:
-        # Fetch Real-Time & Intraday data for Sparkline
+        # Standard query1 endpoint, no extended hours requested to avoid 429 bans
         api_rt = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d"
         req_rt = urllib.request.Request(api_rt, headers={'User-Agent': user_agent})
+        
         with urllib.request.urlopen(req_rt, timeout=1.5) as response_rt:
             data_rt = json.loads(response_rt.read().decode('utf-8'))
             meta = data_rt['chart']['result'][0]['meta']
@@ -165,26 +170,22 @@ def get_stock_data(symbol, market_phase):
             comparison_base = prev_close
             phase_icon = ""
 
-            # Adjust display price based on pre/post market sessions
-            if market_phase == 'PRE' and meta.get('preMarketPrice'):
-                display_price = meta.get('preMarketPrice')
-                phase_icon = "🌅"
-            elif market_phase == 'POST' and meta.get('postMarketPrice'):
-                display_price = meta.get('postMarketPrice')
-                comparison_base = regular_price 
-                phase_icon = "🌙"
-
             close_prices = data_rt['chart']['result'][0]['indicators']['quote'][0].get('close', [])
             sparkline = generate_sparkline(close_prices)
 
-        # Fetch 10-Day Average Volume
-        api_hist = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=15d&interval=1d"
-        req_hist = urllib.request.Request(api_hist, headers={'User-Agent': user_agent})
-        with urllib.request.urlopen(req_hist, timeout=1.5) as response_hist:
-            data_hist = json.loads(response_hist.read().decode('utf-8'))
-            indicators = data_hist['chart']['result'][0]['indicators']['quote'][0]
-            volumes = [v for v in indicators.get('volume', []) if v is not None]
-            avg_v_10d = sum(volumes[-11:-1]) / 10 if len(volumes) >= 11 else current_vol
+        # Restore 10-day volume fetch via historical chart data
+        avg_v_10d = current_vol
+        try:
+            api_hist = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=15d&interval=1d"
+            req_hist = urllib.request.Request(api_hist, headers={'User-Agent': user_agent})
+            with urllib.request.urlopen(req_hist, timeout=1.5) as response_hist:
+                data_hist = json.loads(response_hist.read().decode('utf-8'))
+                indicators = data_hist['chart']['result'][0]['indicators']['quote'][0]
+                volumes = [v for v in indicators.get('volume', []) if v is not None]
+                if len(volumes) >= 11:
+                    avg_v_10d = sum(volumes[-11:-1]) / 10
+        except Exception:
+            pass # Fallback to current volume if history fetch fails
                 
         c_pct = ((display_price - comparison_base) / comparison_base) * 100 if comparison_base != 0 else 0
         
@@ -200,8 +201,10 @@ def get_stock_data(symbol, market_phase):
             "c_pct_raw": c_pct, "phase_icon": phase_icon,
             "currency": currency_sym, "sparkline": sparkline
         }
+    except urllib.error.HTTPError as e:
+        return {"symbol": symbol, "error": True, "err_msg": f"HTTP {e.code}"}
     except Exception: 
-        return {"symbol": symbol, "error": True}
+        return {"symbol": symbol, "error": True, "err_msg": "Timeout"}
 
 def get_and_update_index(max_groups):
     """Manages the rotation index for ticker groups."""
@@ -229,15 +232,20 @@ def main():
     if 4 <= now.hour < 9 or (now.hour == 9 and now.minute < 30): market_phase = 'PRE'
     elif 16 <= now.hour < 20: market_phase = 'POST'
     
-    # EXACT TIMING: Only active between 9:29 AM and 4:01 PM EST
     current_mins = now.hour * 60 + now.minute
-    is_working_hours = (9 * 60 + 29) <= current_mins <= (16 * 60 + 1)
     
-    # Smart Sleep Mode: Halt API requests during weekends or outside working hours
-    if is_weekend or not is_working_hours:
+    # 1. NEWS ENGINE TIMING: 6:59 AM to 8:01 PM EST
+    is_news_active = (6 * 60 + 59) <= current_mins <= (20 * 60 + 1)
+    
+    # 2. STOCK ENGINE TIMING: 9:29 AM to 4:01 PM EST
+    is_stock_active = (9 * 60 + 29) <= current_mins <= (16 * 60 + 1)
+    
+    # Deep Sleep Mode: If weekend or outside News Hours
+    if is_weekend or not is_news_active:
         print(f"🌑🌑🌑🌑🌑 | {FONT_SETTINGS} color={CONFIG['COLOR_NORMAL']}")
         print('---')
-        print(f"Status: Market Closed (Deep Sleep) - Last: {now.strftime('%X')} EST")
+        status_msg = "Weekend" if is_weekend else "Deep Sleep"
+        print(f"Status: {status_msg} - Last: {now.strftime('%X')} EST")
         print(f"Edit Config File | href=file://{CONFIG_FILE}")
         sys.exit(0)
         
@@ -273,12 +281,24 @@ def main():
             
         if group_idx >= len(CONFIG['TICKER_GROUPS']): group_idx = 0
         current_syms = CONFIG['TICKER_GROUPS'][group_idx]
+        
+    # Gather all symbols (Current group + Portfolio stocks)
+    portfolio = CONFIG.get("PORTFOLIO", {})
+    all_fetch_syms = set(current_syms)
+    if is_stock_active:
+        for sym in portfolio.keys():
+            all_fetch_syms.add(sym)
     
-    # === Concurrent Data Fetching (Stocks + News) ===
+    # === Concurrent Data Fetching (Dual Engine) ===
     results = []
     latest_news = None
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(15, len(current_syms) + 1)) as executor:
-        future_to_sym = {executor.submit(get_stock_data, sym, market_phase): sym for sym in current_syms}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(15, len(all_fetch_syms) + 1)) as executor:
+        
+        # Only query Yahoo Finance if Stock Engine is Active
+        future_to_sym = {}
+        if is_stock_active:
+            # Fetch data for EVERY symbol needed (Group + Portfolio)
+            future_to_sym = {executor.submit(get_stock_data, sym, market_phase): sym for sym in all_fetch_syms}
         
         # Submit the News API request concurrently if enabled
         news_future = None
@@ -291,15 +311,18 @@ def main():
         if news_future:
             latest_news = news_future.result()
             
-    # Sort results
-    if is_smart_sort:
-        results = [r for r in results if not r.get("error")]
-        results.sort(key=lambda x: abs(x['c_pct_raw']), reverse=True)
-        display_limit = len(CONFIG['TICKER_GROUPS'][0]) if CONFIG['TICKER_GROUPS'] else 2
-        ordered_results = results[:display_limit]
-    else:
+    # Map results and sort ONLY for the menu bar display group
+    ordered_results = []
+    results_dict = {}
+    if is_stock_active:
         results_dict = {res['symbol']: res for res in results}
-        ordered_results = [results_dict[sym] for sym in current_syms if sym in results_dict]
+        if is_smart_sort:
+            valid_results = [r for r in results if r['symbol'] in current_syms and not r.get("error")]
+            valid_results.sort(key=lambda x: abs(x['c_pct_raw']), reverse=True)
+            display_limit = len(CONFIG['TICKER_GROUPS'][0]) if CONFIG['TICKER_GROUPS'] else 2
+            ordered_results = valid_results[:display_limit]
+        else:
+            ordered_results = [results_dict[sym] for sym in current_syms if sym in results_dict]
     
     state_changed = False
     freeze_duration = CONFIG.get("FREEZE_DURATION", 30)
@@ -326,7 +349,7 @@ def main():
                 state_changed = True
                 is_paused = True # Force pause locally
     
-    # === 2. Individual Stock Alert Detection ===
+    # === 2. Individual Stock Alert Detection (For displayed group) ===
     for data in ordered_results:
         if data.get("error"): continue
         sym = data['symbol']
@@ -351,23 +374,40 @@ def main():
                         current_color = alert_state["pause_color"]
                     state_changed = True
 
-    menu_bar_parts = []
-    dropdown_info = []
-    
-    portfolio = CONFIG.get("PORTFOLIO", {})
-    custom_icons = CONFIG.get("TICKER_ICONS", {}) 
-    account_cfg = CONFIG.get("ACCOUNT", {})
-    
+    # ====== CALCULATE GLOBAL PORTFOLIO INDEPENDENTLY ======
     total_market_value = 0.0
     total_unrealized_pl = 0.0
     total_today_pl = 0.0
     has_active_portfolio = False
 
+    if is_stock_active:
+        for sym, pos in portfolio.items():
+            shares = pos.get("shares", 0)
+            if shares > 0 and sym in results_dict and not results_dict[sym].get("error"):
+                data = results_dict[sym]
+                cost = pos.get("cost_basis", 0.0)
+                
+                market_val = data['p_float'] * shares
+                unrealized = market_val - (cost * shares)
+                today_pl = (data['p_float'] - data['prev_close']) * shares
+                
+                total_market_value += market_val
+                total_unrealized_pl += unrealized
+                total_today_pl += today_pl
+                has_active_portfolio = True
+
+    menu_bar_parts = []
+    dropdown_info = []
+    
+    custom_icons = CONFIG.get("TICKER_ICONS", {}) 
+    account_cfg = CONFIG.get("ACCOUNT", {})
+
     for data in ordered_results:
         sym = data['symbol']
         if data.get("error"):
-            menu_bar_parts.append(f"{sym} [N/A]")
-            dropdown_info.append(f"{sym}: Network Error")
+            err_code = data.get("err_msg", "Error")
+            menu_bar_parts.append(f"{sym} [{err_code}]")
+            dropdown_info.append(f"{sym}: API Blocked - {err_code}")
             continue
         
         c_sym = data['currency']
@@ -384,26 +424,22 @@ def main():
             shares = portfolio[sym]["shares"]
             cost = portfolio[sym]["cost_basis"]
             
-            # Calculate Total Market Value & P&L
             market_val = data['p_float'] * shares
             unrealized = market_val - (cost * shares)
             today_pl = (data['p_float'] - data['prev_close']) * shares
             
-            total_market_value += market_val
-            total_unrealized_pl += unrealized
-            total_today_pl += today_pl
-            has_active_portfolio = True
-            
             sign = '+' if unrealized >= 0 else ''
             t_sign = '+' if today_pl >= 0 else ''
             
-            dd_str += f" • 💰 P&L: {sign}{c_sym}{unrealized:,.2f} (Today: {t_sign}{c_sym}{today_pl:,.2f})"
+            # Dynamic single stock P&L coloring
+            single_pl_color = CONFIG['COLOR_UP'] if unrealized >= 0 else CONFIG['COLOR_DOWN']
+            dd_str += f" • 💰 P&L: {sign}{c_sym}{unrealized:,.2f} (Today: {t_sign}{c_sym}{today_pl:,.2f}) | color={single_pl_color}"
         
         dd_str += f" | href=https://finance.yahoo.com/quote/{sym}"
         dropdown_info.append(dd_str)
         
     # === 3. Global Equity Alerts ===
-    if has_active_portfolio:
+    if has_active_portfolio and is_stock_active:
         margin_used = account_cfg.get("margin_used", 0.0)
         current_equity = total_market_value - margin_used
         eq_high = account_cfg.get("EQUITY_ALERT_HIGH", 0.0)
@@ -449,49 +485,62 @@ def main():
         # Override entire menu bar with the Breaking News headline
         menu_bar_string = alert_state["alert_msg"]
     else:
-        # Standard rendering for Stock/Equity alerts
-        menu_bar_string = "   ".join(menu_bar_parts)
-        if is_paused and alert_state.get("alert_type", "").startswith("EQUITY"):
-            prefix = "🎯 [HIGH EQUITY] " if alert_state["alert_type"] == "EQUITY_HIGH" else "🛑 [LOW EQUITY] "
-            menu_bar_string = prefix + menu_bar_string
+        if is_stock_active:
+            # Standard rendering for Stock/Equity alerts
+            menu_bar_string = "   ".join(menu_bar_parts)
+            if is_paused and alert_state.get("alert_type", "").startswith("EQUITY"):
+                prefix = "🎯 [HIGH EQUITY] " if alert_state["alert_type"] == "EQUITY_HIGH" else "🛑 [LOW EQUITY] "
+                menu_bar_string = prefix + menu_bar_string
+        else:
+            # When stock engine is off but news is active
+            menu_bar_string = "📡 News Radar ON [Market Closed]"
 
     print(f"{menu_bar_string} | {FONT_SETTINGS} color={current_color}")
     
     print('---')
     
     # === Render Global Portfolio Dashboard ===
-    if has_active_portfolio:
+    if has_active_portfolio and is_stock_active:
         margin_used = account_cfg.get("margin_used", 0.0)
         current_equity = total_market_value - margin_used
         
         tot_sign = '+' if total_unrealized_pl >= 0 else ''
         tot_t_sign = '+' if total_today_pl >= 0 else ''
         
-        print(f"🏦 PORTFOLIO TOTAL | color=#00BFFF size=14 font='Menlo Bold'")
-        print(f"💵 Equity: ${current_equity:,.2f} (Margin: ${margin_used:,.2f}) | color=#FFA500 size=13")
-        print(f"💰 Total P&L: {tot_sign}${total_unrealized_pl:,.2f} (Today: {tot_t_sign}${total_today_pl:,.2f}) | color=#FFFFFF size=13")
+        # Dynamic color for Total P&L
+        pl_color = '#228B22' if total_unrealized_pl >= 0 else '#DC143C'
+        
+        print(f"🏦 PORTFOLIO TOTAL | color=#191970 size=14 font='Menlo Bold'")
+        print(f"💵 Equity: ${current_equity:,.2f} (Margin: ${margin_used:,.2f}) | color=#2F4F4F size=13 font='Menlo Bold'")
+        print(f"💰 Total P&L: {tot_sign}${total_unrealized_pl:,.2f} (Today: {tot_t_sign}${total_today_pl:,.2f}) | color={pl_color} size=13 font='Menlo Bold'")
+        print('---')
+    elif not is_stock_active:
+        print("Market Data and P&L Paused | color=#2F4F4F size=13")
+        print("News Engine is actively monitoring CNBC... | color=#191970 size=13")
         print('---')
         
     for info in dropdown_info:
         print(info)
         
-    print('---')
+    if is_stock_active and dropdown_info:
+        print('---')
     
     # OTA Update Check
     new_version = check_for_updates()
     if new_version:
-        print(f"🚀 V{new_version} Update Available! | color=#FFDD00 href={CONFIG.get('UPDATE_URL').replace('raw.githubusercontent.com', 'github.com').replace('/main/version.txt', '')}")
+        print(f"🚀 V{new_version} Update Available! | color=#FF8C00 href={CONFIG.get('UPDATE_URL').replace('raw.githubusercontent.com', 'github.com').replace('/main/version.txt', '')}")
         print('---')
 
     # Display current terminal phase/status
     if is_paused or state_changed:
         msg = alert_state.get("alert_msg", "⚠️ ALERT TRIGGERED")
         time_left = max(0, int(alert_state.get("pause_until", 0) - now_ts))
-        print(f"{msg} ({time_left}s left) | color=#FFDD00 font='Menlo Bold'")
-    elif is_smart_sort:
+        print(f"{msg} ({time_left}s left) | color=#FF8C00 font='Menlo Bold'")
+    elif is_smart_sort and is_stock_active:
         print(f"🔥 SMART SORT MODE ACTIVE - {now.strftime('%X')} EST | color=#FF8C00")
     else:
-        print(f"Phase: {market_phase} - Group {group_idx + 1} - Last Update: {now.strftime('%X')} EST")
+        status_display = f"Phase: {market_phase}" if is_stock_active else "Phase: PRE/POST (News Only)"
+        print(f"{status_display} - Last Update: {now.strftime('%X')} EST")
         
     print('---')
     print("⚙️ Edit Watchlist & Config | href=file://" + CONFIG_FILE)
