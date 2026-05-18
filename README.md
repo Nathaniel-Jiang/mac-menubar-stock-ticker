@@ -6,16 +6,23 @@ A highly customizable, blazing-fast stock ticker for your macOS menu bar. Powere
 
 ## ✨ Features
 
-- **Zero Dependencies (Plug & Play):** Pure Python. No `pip install` or third-party libraries needed.
-- **Mini Sparklines:** See intraday trends directly in your menu bar (e.g., `▂▃▆█`).
-- **CNBC Breaking News [NEW in v1.1]:** Concurrently fetches CNBC Top News via RSS. Triggers a 30-second yellow takeover banner in your menu bar when market-moving news drops.
-- **Global Equity & Margin Alerts [NEW in v1.1]:** Actively calculates your Net Equity (Market Value minus Margin). Emits distinct High/Low equity alerts so you know exactly when to take profits or cut losses.
-- **Custom Ticker Icons [NEW in v1.1]:** Hide raw ticker symbols by mapping them to visually intuitive emojis (e.g., replace `"AAPL"` with 🍎).
-- **Smart Priority Sorting:** Automatically pins today's hottest movers to the front.
-- **Breakout Alerts & Freeze:** 15–30 second UI freeze, color shifts (Green/Red), and crisp sound alerts when a stock hits your predefined thresholds.
-- **Portfolio Tracking:** See your real-time unrealized floating profit/loss directly in the dropdown menu.
-- **💤 Smart Sleep Mode (Eco-Friendly):** Automatically enters “Deep Sleep” mode during weekends and deep night hours to reduce battery and CPU usage.
-- **OTA Updates:** Silently checks for updates and alerts you in the menu dropdown.
+- **Zero Dependencies (Plug & Play):** Pure Python. No `pip install` or third-party libraries required.
+
+- **Dual-Engine Smart Scheduling [NEW in v1.1]:** Intelligently avoids API bans by running the Stock Engine strictly during market hours (9:29 AM – 4:01 PM EST) and the News Radar during extended hours (6:59 AM – 8:01 PM EST).
+
+- **Custom Price Target Alerts [NEW in v1.1]:** Set exact buy/sell targets for individual stocks. Triggers a 🔔 `[PRICE ALERT]` visual takeover when a stock moves above or below your predefined thresholds.
+
+- **Global Equity & Margin Alerts:** Continuously calculates your Net Equity (Market Value minus Margin). Emits distinct High/Low equity alerts so you know exactly when to take profits or cut losses.
+
+- **"Today's P&L" Dynamic Coloring:** Portfolio and individual stock P&L colors are strictly driven by today's performance, using high-contrast Forest Green and Crimson Red optimized for macOS Vibrancy UI.
+
+- **Anti-Clipping Sparklines:** View intraday trends directly in your menu bar (e.g., `▂▃▆█`). Carefully optimized to prevent macOS Menlo font baseline clipping.
+
+- **CNBC Breaking News Radar:** Concurrently fetches CNBC Top News via RSS and triggers a 30-second yellow takeover banner when market-moving headlines drop.
+
+- **Custom Ticker Icons:** Replace raw ticker symbols with intuitive emojis for a cleaner and stealthier menu bar (e.g., replace `"LUNR"` with 🌕).
+
+- **💤 Deep Sleep Mode (Eco-Friendly):** Automatically shuts off background network requests during weekends and deep night hours to reduce battery and CPU usage.
 
 ---
 
@@ -110,7 +117,41 @@ Any ticker assigned an emoji in `TICKER_ICONS` will display that emoji instead o
 
 ---
 
-## 2. Smart Priority Sorting (`SMART_SORT`)
+
+## 2. Individual Price Target Alerts (`PRICE_ALERTS`)
+
+Turn your menu bar into a quantitative trading sentinel by setting precise buy/sell targets for individual stocks.
+
+```json
+"PRICE_ALERTS": {
+    "LUNR": {
+        "above": 40.0,
+        "below": 25.0
+    },
+    "PL": {
+        "above": 45.0
+    }
+}
+```
+
+### Configuration Rules
+
+- **`above`**
+  - Triggers a Green 🔔 `[PRICE ALERT]` when the stock price crosses above the target price
+  - Ideal for Take Profit alerts
+
+- **`below`**
+  - Triggers a Red 🔔 `[PRICE ALERT]` when the stock price drops below the target price
+  - Useful for Stop Loss or Buy-the-Dip alerts
+
+### Notes
+
+- You may define either `above`, `below`, or both
+- All prices must be numeric values
+- Ticker symbols must remain wrapped in double quotes
+
+
+## 3. Smart Priority Sorting (`SMART_SORT`)
 
 ### What It Does
 When enabled, the script bypasses fixed group rotations and scans all tickers simultaneously, pinning the strongest movers with the highest percentage changes.
@@ -123,7 +164,7 @@ When enabled, the script bypasses fixed group rotations and scans all tickers si
 
 ---
 
-## 3. Portfolio, Margin & Equity Tracking (`PORTFOLIO` & `ACCOUNT`)
+## 4. Portfolio, Margin & Equity Tracking (`PORTFOLIO` & `ACCOUNT`)
 
 ```json
 "ACCOUNT": {
@@ -152,7 +193,7 @@ When enabled, the script bypasses fixed group rotations and scans all tickers si
 
 ---
 
-## 4. Breakout & News Alerts
+## 5. Breakout & News Alerts
 
 ### `THRESHOLDS`
 
@@ -182,7 +223,7 @@ Set to `false` to disable sounds.
 
 ---
 
-## 5. Color Palette (`COLOR_UP` & `COLOR_DOWN`)
+## 6. Color Palette (`COLOR_UP` & `COLOR_DOWN`)
 
 Customize alert overlay colors using hexadecimal color codes.
 
@@ -195,7 +236,7 @@ Example:
 
 ---
 
-## 6. Alert Freeze Duration (`FREEZE_DURATION`)
+## 7. Alert Freeze Duration (`FREEZE_DURATION`)
 
 Controls how long the menu bar remains frozen on an alert.
 
@@ -207,7 +248,7 @@ Value is measured in seconds.
 
 ---
 
-## 7. ⏱️ Data Fetch & Rotation Speed (xbar Mechanism)
+## 8. ⏱️ Data Fetch & Rotation Speed (xbar Mechanism)
 
 xbar controls refresh speed entirely through the filename.
 
