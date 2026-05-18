@@ -229,7 +229,8 @@ def main():
     if 4 <= now.hour < 9 or (now.hour == 9 and now.minute < 30): market_phase = 'PRE'
     elif 16 <= now.hour < 20: market_phase = 'POST'
     
-    is_deep_night = (now.hour >= 20) or (now.hour < 4)
+    # FIX: Changed deep night wake-up time from 4 AM to 7 AM
+    is_deep_night = (now.hour >= 20) or (now.hour < 7)
     
     # Smart Sleep Mode: Halt API requests during weekends or deep night
     if is_weekend or is_deep_night:
@@ -375,7 +376,9 @@ def main():
         
         part_str = f"{phase}{display_sym} {c_sym}{data['p_str']} {data['c_fmt']} {spark}"
         menu_bar_parts.append(part_str)
-        dd_str = f"{display_sym} ({sym}) | Vol: {data['v_fmt']} vs 10D: {data['avg_v_fmt']}"
+        
+        # FIX: Replaced pipe '|' with bullet '•' to prevent xbar parsing crash
+        dd_str = f"{display_sym} ({sym}) • Vol: {data['v_fmt']} vs 10D: {data['avg_v_fmt']}"
         
         if sym in portfolio and portfolio[sym].get("shares", 0) > 0:
             shares = portfolio[sym]["shares"]
@@ -393,7 +396,9 @@ def main():
             
             sign = '+' if unrealized >= 0 else ''
             t_sign = '+' if today_pl >= 0 else ''
-            dd_str += f" | 💰 P&L: {sign}{c_sym}{unrealized:,.2f} (Today: {t_sign}{c_sym}{today_pl:,.2f})"
+            
+            # FIX: Replaced pipe '|' with bullet '•'
+            dd_str += f" • 💰 P&L: {sign}{c_sym}{unrealized:,.2f} (Today: {t_sign}{c_sym}{today_pl:,.2f})"
         
         dd_str += f" | href=https://finance.yahoo.com/quote/{sym}"
         dropdown_info.append(dd_str)
