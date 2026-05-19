@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 General Discussion
+    url: https://github.com/nathanieljiang/menubar-stock-ticker/discussions
+    about: Ask questions, share your config, suggest ideas, or chat with other users.
+  - name: ☕ Support the project
+    url: https://buymeacoffee.com/nathanieljiang
+    about: Like the plugin? A coffee helps me keep maintaining it.

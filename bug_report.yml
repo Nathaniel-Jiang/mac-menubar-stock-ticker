@@ -1,0 +1,81 @@
+name: 🐛 Bug Report
+description: Something's broken or behaves unexpectedly
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Before you continue:
+
+        - Check `/tmp/xbar_stock.log` — most issues leave a trail there
+        - Make sure you're on the latest version (footer in the dropdown shows it)
+        - Search existing issues to see if it's already known
+
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      description: The `vX.Y` shown at the bottom of the dropdown.
+      placeholder: "e.g. v2.0"
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "e.g. macOS 14.5"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: launcher
+    attributes:
+      label: Plugin launcher
+      options:
+        - xbar
+        - SwiftBar
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe what you saw vs. what you expected.
+      placeholder: |
+        Example:
+        Menu bar shows AAPL at $200 but Robinhood shows $205. Refreshed several
+        times, no change. Other tickers seem fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log lines
+      description: |
+        Run `tail -50 /tmp/xbar_stock.log` and paste the output. Scrub any
+        accidental personal info. **Never paste API keys.**
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Config (redacted)
+      description: |
+        Paste your `~/.xbar_stock_config.json` with API keys replaced by
+        placeholders. The portfolio and ticker list often matter for repro.
+      render: json
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: Drag images here — menu bar shots help a lot.

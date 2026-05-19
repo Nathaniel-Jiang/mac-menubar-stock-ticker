@@ -1,0 +1,50 @@
+{
+    "_comment": "Copy this file to ~/.xbar_stock_config.json and edit. Run `chmod 600` after.",
+
+    "THRESHOLDS": [5, 10, 15, 20, 25],
+
+    "COLOR_UP": "#228B22",
+    "COLOR_DOWN": "#DC143C",
+    "COLOR_NORMAL": "#FFFFFF",
+
+    "ENABLE_SOUND_ALERT": true,
+    "ENABLE_NOTIFICATIONS": true,
+    "STOCK_ALERT_COOLDOWN_MINUTES": 5,
+    "FREEZE_DURATION": 30,
+
+    "SMART_SORT": false,
+    "ENABLE_NEWS_ALERTS": true,
+    "SHOW_TREASURY_IN_MENUBAR": true,
+
+    "FINNHUB_API_KEY": "YOUR_FINNHUB_KEY_HERE",
+    "ALPACA_API_KEY": "YOUR_ALPACA_KEY_HERE",
+    "ALPACA_API_SECRET": "YOUR_ALPACA_SECRET_HERE",
+    "ALPACA_ENDPOINT": "https://data.alpaca.markets/v2",
+
+    "UPDATE_URL": "",
+
+    "TICKER_GROUPS": [
+        ["AAPL", "MSFT", "TSLA"],
+        ["NVDA", "GOOGL", "AMZN"]
+    ],
+
+    "TICKER_ICONS": {
+        "AAPL": "🍎",
+        "TSLA": "⚡",
+        "NVDA": "🧠"
+    },
+
+    "ACCOUNT": {
+        "margin_used": 0.0,
+        "EQUITY_ALERT_HIGH": 100000.0,
+        "EQUITY_ALERT_LOW": 10000.0
+    },
+
+    "PORTFOLIO": {
+        "AAPL": {"shares": 0, "cost_basis": 0.0}
+    },
+
+    "PRICE_ALERTS": {
+        "AAPL": {"above": 250.0, "below": 100.0}
+    }
+}
